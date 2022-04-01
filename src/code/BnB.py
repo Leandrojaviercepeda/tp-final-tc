@@ -222,7 +222,7 @@ def VC_Size(VC):
 # MAIN BODY OF CODE
 
 
-def main(inputfile, output_dir, cutoff, randSeed):
+def main(inputfile, cutoff):
     # LEER EL ARCHIVO DE ENTRADA EN EL GRAPH
     adj_list = parse(inputfile)
     g = create_graph(adj_list)
@@ -249,20 +249,13 @@ def main(inputfile, output_dir, cutoff, randSeed):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Input parser for BnB')
+    parser = argparse.ArgumentParser(prog='Analizador de entrada para Approx', description='Minimum vertex cover Branch and Bound')
     parser.add_argument('-inst', action='store', type=str,
-                        required=True, help='Inputgraph datafile')
-    parser.add_argument('-alg', action='store', default=1000,
-                        type=str, required=True, help='Name of algorithm')
+                        required=True, help='Archivo de datos de Grafo de entrada')
     parser.add_argument('-time', action='store', default=1000, type=int,
-                        required=True, help='Cutoff running time for algorithm')
-    parser.add_argument('-seed', action='store', default=1000,
-                        type=int, required=False, help='random seed')
+                        required=True, help='Tiempo límite de ejecución del algoritmo')
     args = parser.parse_args()
 
-    algorithm = args.alg
     graph_file = args.inst
-    output_dir = './output'
     cutoff = args.time
-    randSeed = args.seed
-    main(graph_file, output_dir, cutoff, randSeed)
+    main(graph_file, cutoff)
