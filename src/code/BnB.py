@@ -1,25 +1,25 @@
 '''
-This file implements the Branch and Bound method to find minimum vertex cover for a given input graph.
+Este archivo implementa el método Branch and Bound para encontrar la cobertura mínima de vértices para un Grafo de entrada dado.
 
-Author: Leandro Cepeda
+Autor: Leandro Cepeda.
 
-Instructions: The folder structure is as follows: Project Directory contains   [code,Data,output].
-The code files must be pasted in code folder.
-The output files are generated automatically by the scripts.
-The data files are made up of numbers separated by spaces. The first row of the file must represent the following data: number of vertices, number of edges, weights.
-The rest of the rows in the file represent the following data:
+Instrucciones: La estructura de la carpeta es la siguiente: El directorio del proyecto contiene [código, datos, salida].
+Los archivos de código deben pegarse en la carpeta de código.
+Los archivos de salida son generados automáticamente por los scripts.
+Los archivos de datos están formados por números separados por espacios. La primera fila del archivo debe representar los siguientes datos: número de vértices, número de aristas, pesos.
+El resto de las filas del archivo representan los siguientes datos:
 i = row number = vertex; j = value in row = edge; x = weight
 
-Example:
-* For the following Graph:
+Ejemplo:
+* Para el siguiente Graph:
 
   - 2 - 4 - 6
 1   |   |
   - 3 - 5
 
-The structure of the document would be as follows:
+La estructura del archivo sería la siguiente:
 6 7 0
-23
+2 3
 1 3 4
 1 2 5
 2 5 6
@@ -27,13 +27,14 @@ The structure of the document would be as follows:
 4
 
 Language: Python 3
-Executable: python code/BnB.py -inst data/karate.graph -alg BnB -time 600 -seed 100
-The seed value will not be used for the BnB implementaiton.
+### Running: python3 code/BnB.py -inst data/karate.graph -alg BnB -time 600 -seed 100
+El valor inicial no se utilizará para la implementación de BnB.
 
-The output will be two files: *.sol and *.trace created in the project Output folder
-*.sol --- record the size of optimum vertex cover and the nodes in it.
-*.trace --- record all the optimum solution found
-            during the search and the time it was found
+La salida serán dos archivos: *.sol y *.trace creados en la carpeta Output del proyecto
+*.sol --- registra el tamaño de la cobertura óptima de vértices y los nodos que contiene.
+*.trace --- registrar todas las soluciones óptimas encontradas durante la búsqueda y el momento en que se encontró
+
+### Help: python3 BnB.py --help
 '''
 
 import argparse
@@ -42,10 +43,11 @@ import operator
 import time
 import os
 
-# FUNCTION FOR PARSING INPUT FILES
-
 
 def parse(datafile):
+    '''
+    Funcion para analisis de archivos de entrada
+    '''
     adj_list = []
     with open(datafile) as f:
         num_vertices, num_edges, weighted = map(int, f.readline().split())
@@ -53,10 +55,11 @@ def parse(datafile):
             adj_list.append(map(int, f.readline().split()))
     return adj_list
 
-# USE THE ADJACENCY LIST TO CREATE A GRAPH
-
 
 def create_graph(adj_list):
+    '''
+    Utiliza la lista de adyacencia para crear un Grafo
+    '''
     G = nx.Graph()
     for i in range(len(adj_list)):
         for j in adj_list[i]:
@@ -64,57 +67,58 @@ def create_graph(adj_list):
     print(G)
     return G
 
-# BRANCH AND BOUND FUNCTION to find minimum VC of a graph
-
 
 def BnB(G, T):
-    # RECORD START TIME
+    '''
+    Funcion Branch and Bound para encontrar el VC minimo de un Grafo
+    '''
+    # HORA DE INICIO DEL REGISTRO
     start_time = time.time()
     end_time = start_time
     delta_time = end_time-start_time
-    # list of times when solution is found, tuple=(VC size,delta_time)
+    # lista de veces en que se encuentra la solución, tuple=(VC size,delta_time)
     times = []
 
-    # INITIALIZE SOLUTION VC SETS AND FRONTIER SET TO EMPTY SET
+    # INICIALIZAR SOLUCIÓN CONJUNTOS VC Y CONJUNTO FRONTERA A CONJUNTO VACÍO
     OptVC = []
     CurVC = []
     Frontier = []
     neighbor = []
 
-    # ESTABLISH INITIAL UPPER BOUND
+    # ESTABLECER LÍMITE SUPERIOR INICIAL
     UpperBound = G.number_of_nodes()
     print('Initial UpperBound:', UpperBound)
 
-    CurG = G.copy()  # make a copy of G
-    # sort dictionary of degree of nodes to find node with highest degree
+    CurG = G.copy()  # hacer una copia de G
+    # ordena el diccionario del grado de los nodos para encontrar el nodo con el grado más alto
     v = find_maxdeg(CurG)
 
-    # APPEND (V,1,(parent,state)) and (V,0,(parent,state)) TO FRONTIER
-    # tuples of node,state,(parent vertex,parent vertex state)
+    # ADJUNTAR (V,1,(parent,state)) Y (V,0,(parent,state)) A LA FRONTERA
+    # tuplas de node,state,(parent vertex,parent vertex state)
     Frontier.append((v[0], 0, (-1, -1)))
     Frontier.append((v[0], 1, (-1, -1)))
 
     while Frontier != [] and delta_time < T:
-        # set current node to last element in Frontier
+        # establecer el nodo actual en el último elemento en Frontier
         (vi, state, parent) = Frontier.pop()
 
         backtrack = False
 
-        if state == 0:  # if vi is not selected, state of all neighbors=1
-            neighbor = CurG.neighbors(vi)  # store all neighbors of vi
+        if state == 0:  # si no se selecciona vi, estado de todos los vecinos=1
+            neighbor = CurG.neighbors(vi)  # almacenar todos los vecinos de vi
             for node in list(neighbor):
                 CurVC.append((node, 1))
-                # node is in VC, remove neighbors from CurG
+                # El nodo está en VC, elimina vecinos de CurG
                 CurG.remove_node(node)
-        elif state == 1:  # if vi is selected, state of all neighbors=0
-            CurG.remove_node(vi)  # vi is in VC,remove node from G
+        elif state == 1:  # si se selecciona vi, estado de todos los vecinos=0
+            CurG.remove_node(vi)  # vi está en VC, elimine el nodo de G
         else:
             pass
 
         CurVC.append((vi, state))
         CurVC_size = VC_Size(CurVC)
 
-        if CurG.number_of_edges() == 0:  # end of exploring, solution found
+        if CurG.number_of_edges() == 0:  # fin de la exploración, solución encontrada
 
             if CurVC_size < UpperBound:
                 OptVC = CurVC.copy()
@@ -123,43 +127,44 @@ def BnB(G, T):
                 times.append((CurVC_size, time.time()-start_time))
             backtrack = True
 
-        else:  # partial solution
+        else:  # solución parcial
             CurLB = Lowerbound(CurG) + CurVC_size
 
             if CurLB < UpperBound:  # worth exploring
                 vj = find_maxdeg(CurG)
-                # (vi,state) is parent of vj
+                # (vi,state) Es padre de vj
                 Frontier.append((vj[0], 0, (vi, state)))
                 Frontier.append((vj[0], 1, (vi, state)))
             else:
-                # end of path, will result in worse solution,backtrack to parent
+                # final de la ruta, dará como resultado una peor solución, retrocede al padre
                 backtrack = True
 
         if backtrack == True:
-            if Frontier != []:  # otherwise no more candidates to process
-                # parent of last element in Frontier (tuple of (vertex,state))
+            if Frontier != []:  # De lo contrario no más candidatos para procesar
+                # padre del último elemento en Frontier (tuple of (vertex,state))
                 nextnode_parent = Frontier[-1][2]
 
-                # backtrack to the level of nextnode_parent
+                # retroceder al nivel de nextnode_parent
                 if nextnode_parent in CurVC:
 
                     id = CurVC.index(nextnode_parent) + 1
-                    # undo changes from end of CurVC back up to parent node
+                    # deshacer los cambios desde el final de la copia de seguridad de CurVC hasta el nodo principal
                     while id < len(CurVC):
-                        mynode, mystate = CurVC.pop()  # undo the addition to CurVC
-                        CurG.add_node(mynode)  # undo the deletion from CurG
+                        mynode, mystate = CurVC.pop()  # deshacer la adición a CurVC
+                        # deshacer la eliminación de CurG
+                        CurG.add_node(mynode)
 
-                        # find all the edges connected to vi in Graph G
-                        # or the edges that connected to the nodes that not in current VC set.
+                        # encuentra todas las aristas conectadas a vi en el Grafo G
+                        # o los bordes que se conectaron a los nodos que no están en el conjunto de VC actual.
 
                         curVC_nodes = list(map(lambda t: t[0], CurVC))
                         for nd in G.neighbors(mynode):
                             if (nd in CurG.nodes()) and (nd not in curVC_nodes):
-                                # this adds edges of vi back to CurG that were possibly deleted
+                                # esto agrega bordes de vi de regreso a CurG que posiblemente fueron eliminados
                                 CurG.add_edge(nd, mynode)
 
                 elif nextnode_parent == (-1, -1):
-                    # backtrack to the root node
+                    # retroceder al nodo raíz
                     CurVC.clear()
                     CurG = G.copy()
                 else:
@@ -172,37 +177,42 @@ def BnB(G, T):
 
     return OptVC, times
 
-# TO FIND THE VERTEX WITH MAXIMUM DEGREE IN REMAINING GRAPH
-
 
 def find_maxdeg(g):
+    '''
+    Funcion para encontrar el vertice con grado maximo en el Grafo restante
+    '''
     deglist = g.degree()
     deglist_sorted = sorted(deglist, reverse=True, key=operator.itemgetter(
-        1))  # sort in descending order of node degree
-    v = deglist_sorted[0]  # tuple - (node,degree)
+        1))  # ordenar en orden descendente de grado de nodo
+    v = deglist_sorted[0]  # tupla - (node,degree)
     return v
-
-# EXTIMATE LOWERBOUND
 
 
 def Lowerbound(graph):
+    '''
+    Funcion para estimar el limite inferior
+    '''
     lb = graph.number_of_edges() / find_maxdeg(graph)[1]
     lb = ceil(lb)
     return lb
 
 
 def ceil(d):
-    # return the minimum integer that is bigger than d
+    '''
+    Funcion para devolver el entero mínimo que es mayor que d
+    '''
     if d > int(d):
         return int(d) + 1
     else:
         return int(d)
 
 
-# CALCULATE SIZE OF VERTEX COVER (NUMBER OF NODES WITH STATE=1)
 def VC_Size(VC):
-    # VC is a tuple list, where each tuple = (node_ID, state, (node_ID, state)) vc_size is the number of nodes which has state == 1
-
+    '''
+    Funcion para calcular el tamaño de la cubierta VC (numero de nodos con state=1)
+    '''
+    # VC es una lista de tuplas, donde cada tupla = (node_ID, state, (node_ID, state)) vc_size es el número de nodos que tienen state == 1
     vc_size = 0
     for element in VC:
         vc_size = vc_size + element[1]
@@ -213,27 +223,27 @@ def VC_Size(VC):
 
 
 def main(inputfile, output_dir, cutoff, randSeed):
-    # READ INPUT FILE INTO GRAPH
+    # LEER EL ARCHIVO DE ENTRADA EN EL GRAPH
     adj_list = parse(inputfile)
     g = create_graph(adj_list)
 
     Sol_VC, times = BnB(g, cutoff)
 
-    # DELETE FALSE NODES (STATE=0) IN OBTAINED SoL_VC
+    # ELIMINAR NODOS FALSOS (ESTADO=0) EN SoL_VC OBTENIDO
     for element in Sol_VC:
         if element[1] == 0:
             Sol_VC.remove(element)
 
-    # WRITE SOLUTION AND TRACE FILES TO "*.SOL" AND '*.TRACE"  RESPECTIVELY
+    # ESCRIBIR SOLUCIÓN Y ARCHIVOS DE SEGUIMIENTO A "*.SOL" Y '*.TRACE" RESPECTIVAMENTE
     inputdir, inputfile = os.path.split(inputfile)
 
-    # WRITE SOL FILES
-    with open('.\output\\' + inputfile.split('.')[0] + '_BnB_'+str(cutoff)+'.sol', 'w') as f:
+    # ESCRIBIR ARCHIVOS SOL
+    with open(inputfile.split('.')[0] + '_BnB_'+str(cutoff)+'.sol', 'w') as f:
         f.write('%i\n' % (len(Sol_VC)))
         f.write(','.join([str(x[0]) for x in Sol_VC]))
 
-    # WRITE TRACE FILES
-    with open('.\output\\' + inputfile.split('.')[0] + '_BnB_'+str(cutoff)+'.trace', 'w') as f:
+    # ESCRIBIR ARCHIVOS DE SEGUIMIENTO
+    with open(inputfile.split('.')[0] + '_BnB_'+str(cutoff)+'.trace', 'w') as f:
         for t in times:
             f.write('%.2f,%i\n' % ((t[1]), t[0]))
 
@@ -252,7 +262,7 @@ if __name__ == '__main__':
 
     algorithm = args.alg
     graph_file = args.inst
-    output_dir = 'output/'
+    output_dir = './output'
     cutoff = args.time
     randSeed = args.seed
     main(graph_file, output_dir, cutoff, randSeed)
